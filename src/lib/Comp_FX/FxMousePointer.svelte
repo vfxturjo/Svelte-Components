@@ -2,21 +2,25 @@
 import { spring } from "svelte/motion";
 import { onMount } from "svelte";
 import { color_theme } from "../../GlobalVars";
+import mojs from "@mojs/core";
 
-export let JS_Anim = false;
 export let remove_original_cursor = false;
 export let inner_circle_size_ratio = 2;
-// export let use_spring = true;        // ! ANOTHER WITH SPRING???
-// export let provide_outline_cursor = true;
-export let provide_circle_cursor = true;
-export let circle_radius = 4;
+export let provide_cursor = true;
 export let circle_color = "red";
+export let provide_fill_cursor = false;
+export let circle_radius = 4;
+export let provide_outline_cursor = true;
+export let border_radius = 1;
 export let darkMode_Color = "green";
 export let scaleFactor = 4;
-// export let hide_cursor = true;
+export let clickFX = true;
+export let clickFX_color = "pink";
+export let clickFX_color_dark = "lime";
 
 // ! Pointer Color
 let current_cursor_color = circle_color;
+let current_FX_color = clickFX_color;
 $: {
     if (darkMode_Color !== undefined) {
         if ($color_theme === "dark") {
@@ -25,13 +29,16 @@ $: {
             current_cursor_color = circle_color;
         }
     }
+    if (clickFX_color_dark !== undefined) {
+        if ($color_theme === "dark") {
+            current_FX_color = clickFX_color_dark;
+        } else {
+            current_FX_color = clickFX_color;
+        }
+    }
 }
 
 let cursorPos = { x: 0, y: 0 };
-
-function handleMouseDown(event) {
-    console.log("a");
-}
 
 let cursorObject = document.getElementById("cursor");
 let cursorMainObject = document.getElementById("cursor_main");
@@ -76,13 +83,36 @@ function handleMouseEnter() {
     // @ts-ignore
     cursorObject.animate({ opacity: 1 }, easings);
 }
+
+// FX
+$: bubbles = new mojs.Burst({
+    left: 0,
+    top: 0,
+    radius: 25,
+    count: 3,
+
+    children: {
+        stroke: current_FX_color,
+        fill: "none",
+        scale: 1,
+        strokeWidth: { 8: 0 },
+        radius: { 0: "rand(4, 8)" },
+        degreeShift: "rand(-50, 50)",
+        duration: 400,
+        delay: "rand(0, 250)",
+    },
+});
+
+function handleMouseDown(event) {
+    bubbles.tune({ x: event.pageX, y: event.pageY }).generate().replay();
+}
 </script>
 
 <svelte:body
     on:mouseleave="{handleMouseLeave}"
     on:mouseenter="{handleMouseEnter}"
     on:mousemove="{handleMouseMove}"
-    on:mousedown="{handleMouseDown}"
+    on:mousedown="{clickFX ? handleMouseDown : () => {}}"
 />
 
 {#if remove_original_cursor}
@@ -106,77 +136,56 @@ function handleMouseEnter() {
     </div>
 {/if}
 
-{#if JS_Anim}
-    <div
-        class="mouse-follow-script"
-        style="
+<div
+    class="mouse-follow-script"
+    id="cursor"
+    style="
             top: {-circle_radius}px; left: {-circle_radius}px;
             width: {circle_radius * 2}px;
             height: {circle_radius * 2}px;
             "
-    >
-        {#if provide_circle_cursor}
+>
+    {#if provide_cursor}
+        {#if provide_outline_cursor}
             <div
-                id="cursor"
+                style="
+                    width: {circle_radius * 2}px;
+                    height: {circle_radius * 2}px;
+                    border: {border_radius}px solid {current_cursor_color};
+                    border-radius: 50%;"
+            ></div>
+        {/if}
+        {#if provide_fill_cursor}
+            <div
                 style="
                     width: {circle_radius * 2}px;
                     height: {circle_radius * 2}px;
                     background-color: {current_cursor_color};
                     border-radius: 50%;"
             ></div>
-        {:else}
-            <span></span>
         {/if}
-    </div>
-{:else}
-    <div
-        class="mouse-follow-css"
-        style="
-            transform: translate({circle_radius}px, {-circle_radius}px);
-            pointer-events: none;
-            width: {circle_radius * 2}px;
-            height: {circle_radius * 2}px;
-        "
-    >
-        {#if provide_circle_cursor}
-            <div
-                id="cursor"
-                style="
-                    width: {circle_radius * 2}px;
-                    height: {circle_radius * 2}px;
-                    background-color: {current_cursor_color};
-                    border-radius: 50%;"
-            ></div>
-        {:else}
-            <span></span>
-        {/if}
-    </div>
-{/if}
-
-<p>
-    mouseposition = {cursorPos.x}
-    {cursorPos.y}
-</p>
+    {:else}
+        <span></span>
+    {/if}
+</div>
 
 <style>
 .mouse-follow-script {
     position: absolute;
     pointer-events: none;
     z-index: 100;
+    transform-origin: center;
 }
 
-.mouse-follow-css {
-    position: fixed;
-    top: 0;
-    left: 0;
-    z-index: 100;
-    transition: transform 0.2s ease-out;
-}
 .mouse-main {
     position: fixed;
     top: 0;
     left: 0;
     z-index: 10;
+}
+
+[data-name="mojs-shape"] {
+    pointer-events: none;
 }
 
 /* GET INSPIRATIONS FROM HERE:

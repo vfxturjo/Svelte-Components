@@ -10,7 +10,7 @@ import FxMousePointer from "./../Comp_FX/FxMousePointer.svelte";
 <!-- Normally -->
 <div>
   <!-- <AboutMe /> -->
-  <FxMousePointer JS_Anim="{true}" />
+  <FxMousePointer />
 </div>
 
 <div class="centered_elements">
